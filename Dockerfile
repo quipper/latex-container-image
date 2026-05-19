@@ -11,6 +11,7 @@ RUN apt-get update && apt-get -y install --no-install-recommends --no-install-su
       curl \
       ca-certificates \
       gpg \
+      unzip \
       libatomic1 && \
     locale-gen en_US.UTF-8 && \
     apt-get clean && \
@@ -43,3 +44,14 @@ ENV PATH="/usr/local/texlive/current/bin/current:$PATH"
 RUN ln -s $(readlink -e /usr/local/texlive/current/texmf-var/fonts/conf/texlive-fontconfig.conf) /etc/fonts/conf.d/09-texlive.conf && \
     fc-cache -f && \
     luaotfload-tool -fu
+
+# Install AWS CLI
+# Ref: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html
+RUN mkdir aws-cli-installer && \
+    cd aws-cli-installer && \
+    curl -sf "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o awscliv2.zip && \
+    unzip -q awscliv2.zip && \
+    ./aws/install --update && \
+    aws --version && \
+    cd .. && \
+    rm -rf aws-cli-installer
