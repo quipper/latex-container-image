@@ -1,7 +1,8 @@
 FROM ubuntu:latest
 
 # Install dependencies
-RUN apt-get update && apt-get -y install --no-install-recommends --no-install-suggests \
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends --no-install-suggests \
       git \
       fontconfig \
       ghostscript \
@@ -12,6 +13,7 @@ RUN apt-get update && apt-get -y install --no-install-recommends --no-install-su
       ca-certificates \
       gpg \
       unzip \
+      poppler-utils \
       libatomic1 && \
     locale-gen en_US.UTF-8 && \
     apt-get clean && \
