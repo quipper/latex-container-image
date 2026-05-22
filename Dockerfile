@@ -1,6 +1,8 @@
 FROM ubuntu:latest
 
 # Install dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Tokyo
 RUN apt-get update && \
     apt-get -y install --no-install-recommends --no-install-suggests \
       git \
@@ -8,6 +10,7 @@ RUN apt-get update && \
       ghostscript \
       xz-utils \
       locales \
+      tzdata \
       wget \
       curl \
       ca-certificates \
@@ -16,6 +19,9 @@ RUN apt-get update && \
       poppler-utils \
       libatomic1 && \
     locale-gen en_US.UTF-8 && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    dpkg-reconfigure -f noninteractive tzdata && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -39,6 +45,11 @@ RUN mkdir texlive-installer && \
     rm -rf texlive-installer
 
 ENV PATH="/usr/local/texlive/current/bin/current:$PATH"
+
+# Install the Microsoft core fonts, accepting the EULA in advance as we are in noninteractive mode.
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections && \
+    apt-get update && \
+    apt-get -y install --no-install-recommends ttf-mscorefonts-installer
 
 # Build font caches.
 # Ref: https://github.com/xu-cheng/latex-docker
