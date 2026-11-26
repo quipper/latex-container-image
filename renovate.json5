@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+
+  "timezone": "Asia/Tokyo",
+  "schedule": ["before 6am on Monday"],
+
+  "reviewers": ["team:aya-contents-devs"],
+
+  // Avoid versions published only recently, as a supply chain attack mitigation.
+  "minimumReleaseAge": "3 days",
+  // Without this, dependencies whose release date Renovate cannot fetch are never updated.
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+
+  // No automerge: every merge to main rebuilds and republishes the `latest` tag,
+  // which quipper/aya-contents-latex uses directly to typeset PDFs.
+}
