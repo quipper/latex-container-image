@@ -36,7 +36,7 @@ ENV LANG="en_US.UTF-8"
 # Ref: https://tug.org/texlive/verify.html
 # mirror.ctan.org redirects each request to a random mirror, and mirrors are not in sync,
 # so the installer and its signed checksum are downloaded from the same mirror.
-ARG TEXLIVE_KEY_FINGERPRINT=C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC
+ARG TEXLIVE_KEY_FINGERPRINT=C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BD
 COPY custom-texlive.profile /custom-texlive.profile
 RUN mkdir texlive-installer && \
     cd texlive-installer && \
