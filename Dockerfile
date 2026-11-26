@@ -31,10 +31,20 @@ ENV LANG="en_US.UTF-8"
 
 # Install TeX Live itself.
 # Ref: https://tug.org/texlive/quickinstall.html
+# mirror.ctan.org redirects each request to a random mirror, and mirrors are not in sync,
+# so the installer and its signed checksum are downloaded from the same mirror.
 COPY custom-texlive.profile /custom-texlive.profile
+COPY texlive.asc /texlive.asc
 RUN mkdir texlive-installer && \
     cd texlive-installer && \
-    wget https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz && \
+    tlnet=$(curl -sSfL -o /dev/null -w '%{url_effective}' https://mirror.ctan.org/systems/texlive/tlnet/) && \
+    for file in install-tl-unx.tar.gz install-tl-unx.tar.gz.sha512 install-tl-unx.tar.gz.sha512.asc; do \
+      curl -sSfL -o "$file" "${tlnet}${file}" || exit 1; \
+    done && \
+    gpg --dearmor < /texlive.asc > texlive.gpg && \
+    gpgv --keyring ./texlive.gpg install-tl-unx.tar.gz.sha512.asc install-tl-unx.tar.gz.sha512 && \
+    sha512sum -c install-tl-unx.tar.gz.sha512 && \
+    rm /texlive.asc && \
     tar xzf install-tl-unx.tar.gz && \
     cd install-tl-20* && \
     mv /custom-texlive.profile . && \

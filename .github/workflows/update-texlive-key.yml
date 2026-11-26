@@ -1,0 +1,54 @@
+name: Update TeX Live signing key
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+env:
+  # Ref: https://tug.org/texlive/pkgcontrib.html
+  PRIMARY_KEY_FINGERPRINT: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC
+  BRANCH: update-texlive-key
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Download the key
+        run: curl -sSfL -o texlive.asc https://tug.org/texlive/files/texlive.asc
+
+      # TeX Live extends the expiry of its signing subkey by publishing the same primary key again.
+      # A different primary key needs a human to check where it comes from.
+      - name: Check the primary key fingerprint
+        run: |
+          fingerprint=$(gpg --show-keys --with-colons texlive.asc | awk -F: '$1 == "fpr" { print $10; exit }')
+          if [ "$fingerprint" != "$PRIMARY_KEY_FINGERPRINT" ]; then
+            echo "::error::Unexpected primary key fingerprint: $fingerprint"
+            exit 1
+          fi
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[]')" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -am "Update TeX Live signing key"
+          git push --force origin "$BRANCH"
+          gh pr create --head "$BRANCH" --title "Update TeX Live signing key" \
+            --body "The key published at https://tug.org/texlive/files/texlive.asc has changed, with the same primary key. Pull requests opened with GITHUB_TOKEN do not trigger workflows: close and reopen this pull request to build the image."
