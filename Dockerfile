@@ -15,6 +15,7 @@ RUN apt-get update && \
       curl \
       ca-certificates \
       gpg \
+      dirmngr \
       unzip \
       poppler-utils \
       libatomic1 && \
@@ -31,24 +32,32 @@ ENV LANG="en_US.UTF-8"
 
 # Install TeX Live itself.
 # Ref: https://tug.org/texlive/quickinstall.html
+# The signing key comes from keyservers rather than tug.org, so that a compromised tug.org cannot replace it.
+# Ref: https://tug.org/texlive/verify.html
 # mirror.ctan.org redirects each request to a random mirror, and mirrors are not in sync,
 # so the installer and its signed checksum are downloaded from the same mirror.
+ARG TEXLIVE_KEY_FINGERPRINT=C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC
 COPY custom-texlive.profile /custom-texlive.profile
-COPY texlive.asc /texlive.asc
 RUN mkdir texlive-installer && \
     cd texlive-installer && \
+    export GNUPGHOME="$(mktemp -d)" && \
+    { gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$TEXLIVE_KEY_FINGERPRINT" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$TEXLIVE_KEY_FINGERPRINT"; } && \
+    gpg --batch --with-colons --list-keys "$TEXLIVE_KEY_FINGERPRINT" | awk -F: '$1 == "fpr" { print $10; exit }' | grep -qx "$TEXLIVE_KEY_FINGERPRINT" && \
+    gpg --batch --export "$TEXLIVE_KEY_FINGERPRINT" > texlive.gpg && \
+    gpgconf --kill all && \
+    rm -rf "$GNUPGHOME" && \
+    unset GNUPGHOME && \
     tlnet=$(curl -sSfL -o /dev/null -w '%{url_effective}' https://mirror.ctan.org/systems/texlive/tlnet/) && \
     for file in install-tl-unx.tar.gz install-tl-unx.tar.gz.sha512 install-tl-unx.tar.gz.sha512.asc; do \
       curl -sSfL -o "$file" "${tlnet}${file}" || exit 1; \
     done && \
-    gpg --dearmor < /texlive.asc > texlive.gpg && \
     gpgv --keyring ./texlive.gpg install-tl-unx.tar.gz.sha512.asc install-tl-unx.tar.gz.sha512 && \
-    sha512sum -c install-tl-unx.tar.gz.sha512 && \
-    rm /texlive.asc && \
+    sha512sum --check install-tl-unx.tar.gz.sha512 && \
     tar xzf install-tl-unx.tar.gz && \
     cd install-tl-20* && \
     mv /custom-texlive.profile . && \
-    perl ./install-tl --profile=custom-texlive.profile && \
+    perl ./install-tl --verify-downloads --profile=custom-texlive.profile && \
     ln -s /usr/local/texlive/20?? /usr/local/texlive/current && \
     ln -s /usr/local/texlive/20??/bin/*-linux/ /usr/local/texlive/current/bin/current && \
     cd ../.. && \
