@@ -16,6 +16,7 @@ RUN apt-get update && \
       ca-certificates \
       gpg \
       dirmngr \
+      gpg-agent \
       unzip \
       poppler-utils \
       libatomic1 && \
@@ -52,7 +53,6 @@ RUN mkdir texlive-installer && \
     for file in install-tl-unx.tar.gz install-tl-unx.tar.gz.sha512 install-tl-unx.tar.gz.sha512.asc; do \
       curl -sSfL -o "$file" "${tlnet}${file}" || exit 1; \
     done && \
-    printf 'x' >> install-tl-unx.tar.gz.sha512 && \
     gpgv --keyring ./texlive.gpg install-tl-unx.tar.gz.sha512.asc install-tl-unx.tar.gz.sha512 && \
     sha512sum --check install-tl-unx.tar.gz.sha512 && \
     tar xzf install-tl-unx.tar.gz && \
